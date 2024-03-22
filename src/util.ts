@@ -30,7 +30,7 @@ type WorkspaceExtensionConfiguration = WorkspaceConfiguration & {
 };
 
 export function getConfig() {
-  return workspace.getConfiguration("discord") as WorkspaceExtensionConfiguration;
+  return workspace.getConfiguration("slack") as WorkspaceExtensionConfiguration;
 }
 
 export const toLower = (str: string) => str.toLocaleLowerCase();
