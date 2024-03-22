@@ -1,12 +1,23 @@
 import * as vscode from "vscode";
 import { WebClient } from "@slack/web-api";
+import { activity } from "./activity";
+import { throttle } from "./util";
 
 const token = "xoxp-6842186170917-6857766016257-6867969372448-f585b7f89af51423ad6b5a693a007884";
 const client = new WebClient(token);
 
+let state = {};
+let listeners: { dispose: () => any }[] = [];
+
 const statusBarIcon: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
 statusBarIcon.text = "$(pulse) Connecting to Slack...";
 statusBarIcon.show();
+
+async function sendActivity() {
+  state = {
+    ...(await activity(state)),
+  };
+}
 
 const enable = async () => {
   await client.users.profile
@@ -28,6 +39,13 @@ const enable = async () => {
       statusBarIcon.show();
       console.error(error);
     });
+
+  const onChangeActiveTextEditor = vscode.window.onDidChangeActiveTextEditor(() => sendActivity());
+  const onChangeTextDocument = vscode.workspace.onDidChangeTextDocument(throttle(() => sendActivity(), 2000));
+  const onStartDebugSession = vscode.debug.onDidStartDebugSession(() => sendActivity());
+  const onTerminateDebugSession = vscode.debug.onDidTerminateDebugSession(() => sendActivity());
+
+  listeners.push(onChangeActiveTextEditor, onChangeTextDocument, onStartDebugSession, onTerminateDebugSession);
 
   vscode.window.showInformationMessage("Slack Presence is now active!");
 };
